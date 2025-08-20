@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #ffffff;
+      color: #333;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      background: #45818e;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #366a75;
+    }
+    #status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+    .success {
+      background: #D4EDDA;
+      color: #155724;
+      border: 1px solid #C3E6CB;
+    }
+    .error {
+      background: #F8D7DA;
+      color: #721C24;
+      border: 1px solid #F5C6CB;
+    }
+    .info {
+      font-size: 11px;
+      color: #666;
+      margin-top: 10px;
+    }
+    
+    /* ダークモード対応 */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #1e1e1e;
+        color: #e0e0e0;
+      }
+      h2 {
+        color: #e0e0e0;
+      }
+      button {
+        background: #45818e;
+        color: white;
+      }
+      button:hover {
+        background: #5a9ca9;
+      }
+      .info {
+        color: #999;
+      }
+      .success {
+        background: #1e3a1e;
+        color: #6ee17b;
+        border: 1px solid #2d5a2d;
+      }
+      .error {
+        background: #3a1e1e;
+        color: #ff6b6b;
+        border: 1px solid #5a2d2d;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>📥 Claude Session Exporter</h2>
+  
+  <button id="exportSession">Export as Markdown</button>
+  
+  <div id="status"></div>
+  
+  <div class="info">
+    💡 Saved as Title_session.md
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
