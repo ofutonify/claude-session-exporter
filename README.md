@@ -57,8 +57,6 @@ Developed with Claude (Anthropic) through collaborative debugging and iterative 
 
 ---
 
-# 日本語
-
 Claude.aiの会話をMarkdown形式でエクスポートする拡張機能
 
 ## 機能
