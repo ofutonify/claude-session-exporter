@@ -10,6 +10,7 @@ Export Claude.ai conversations as Markdown files
 - ✅ Convert lists and quotes to Markdown format
 - ✅ Organize with timestamped folders
 - ✅ Choose save location
+- ✅ 100% Local Processing - All operations run locally in your browser
 
 ## Installation
 
@@ -67,6 +68,7 @@ Claude.aiの会話をMarkdown形式でエクスポートする拡張機能
 - ✅ リストや引用をMarkdown形式で再現
 - ✅ タイムスタンプ付きフォルダで整理
 - ✅ 保存場所を選択可能
+- ✅ 完全ローカル動作 - すべての処理はブラウザ内で完結
 
 ## インストール方法
 
