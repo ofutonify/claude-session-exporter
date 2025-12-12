@@ -1,5 +1,7 @@
 # Claude Session Exporter 
 
+2025/12/12 エクスポート出来ないことを確認。時間あったら修正するつもり
+
 Export Claude.ai conversations as Markdown files
 
 ## Features
