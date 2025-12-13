@@ -76,24 +76,80 @@ async function exportSession() {
 async function collectMessages() {
   const messages = [];
   
-  // メインコンテナを取得
-  const mainContainer = document.querySelector('div.flex-1.flex.flex-col.gap-3.px-4.max-w-3xl.mx-auto.w-full');
-  if (!mainContainer) {
-    console.error('[Claude Session Exporter] Main container not found');
-    return messages;
-  }
+  // メインコンテナに依存せず、document全体から取得
+  const userMessages = Array.from(document.querySelectorAll('[data-testid="user-message"]'));
   
-  // すべてのメッセージ要素を取得
-  const userMessages = Array.from(mainContainer.querySelectorAll('[data-testid="user-message"]'));
-  const assistantMessages = Array.from(mainContainer.querySelectorAll('.font-claude-response'))
-    .filter(el => !el.querySelector('[data-testid="user-message"]'));
+  // ツールブロックと思考ブロックを先に収集
+  const toolBlocks = [];
+  const thinkingBlocks = [];
   
-  console.log(`Found: ${userMessages.length} user messages, ${assistantMessages.length} assistant messages`);
+  const allButtons = Array.from(document.querySelectorAll('button'));
+  
+  // ツール名ボタンを探す
+  const toolButtons = allButtons.filter(btn => {
+    const text = btn.textContent.trim();
+    return text.match(/^[a-z_]+:[a-z_]+$|^ask_|^web_search|^web_fetch|_search$|_fetch$/i) &&
+           !text.includes('Geminiの意見');
+  });
+  
+  // 思考ボタンを探す（開いた状態：「思考プロセス」、閉じた状態：要約テキスト）
+  const thinkingButtons = allButtons.filter(btn => {
+    if (btn.textContent.includes('思考プロセス') || btn.textContent.includes('じっくり考え')) {
+      return true;
+    }
+    if (btn.classList.contains('group/row') || btn.className.includes('group/row')) {
+      const summarySpan = btn.querySelector('span.text-text-300');
+      const container = btn.closest('div.rounded-lg');
+      if (summarySpan && container && container.className.includes('ease-out')) {
+        return true;
+      }
+    }
+    return false;
+  });
+  
+  toolButtons.forEach(btn => {
+    const container = btn.closest('div.w-full.flex.flex-col') || btn.closest('div.w-full');
+    if (container && !toolBlocks.some(tb => tb.element === container)) {
+      toolBlocks.push({
+        element: container,
+        toolName: btn.textContent.trim()
+      });
+    }
+  });
+  
+  // 思考ブロックを収集（rounded-lgコンテナを特定）
+  thinkingButtons.forEach(btn => {
+    const container = btn.closest('div.rounded-lg');
+    if (container && container.className.includes('ease-out') && 
+        !thinkingBlocks.some(tb => tb.element === container)) {
+      thinkingBlocks.push({
+        element: container
+      });
+    }
+  });
+  
+  // 思考ブロックコンテナのリストを作成
+  const thinkingContainers = thinkingBlocks.map(tb => tb.element);
+  
+  // Assistantメッセージを取得（思考ブロック内のものは除外）
+  const assistantMessages = Array.from(document.querySelectorAll('.standard-markdown')).filter(el => {
+    // 思考ブロックコンテナ内かチェック
+    for (const container of thinkingContainers) {
+      if (container.contains(el)) {
+        return false; // 思考ブロック内なので除外
+      }
+    }
+    return true;
+  });
+  
+  console.log(`Found: ${userMessages.length} user messages, ${assistantMessages.length} assistant messages, ${toolBlocks.length} tool blocks, ${thinkingBlocks.length} thinking blocks`);
   
   // すべての要素をDOM順序でソート
   const allMessages = [
     ...userMessages.map(el => ({element: el, type: 'user'})),
-    ...assistantMessages.map(el => ({element: el, type: 'assistant'}))
+    ...assistantMessages.map(el => ({element: el, type: 'assistant'})),
+    ...toolBlocks.map(tb => ({element: tb.element, type: 'tool', toolName: tb.toolName})),
+    ...thinkingBlocks.map(tb => ({element: tb.element, type: 'thinking'}))
   ];
   
   allMessages.sort((a, b) => {
@@ -117,11 +173,66 @@ async function collectMessages() {
         content: processAssistantMessage(item.element),
         images: extractImages(item.element)
       });
+    } else if (item.type === 'tool') {
+      messages.push({
+        role: `Tool: ${item.toolName}`,
+        content: processToolBlock(item.element),
+        images: []
+      });
+    } else if (item.type === 'thinking') {
+      messages.push({
+        role: 'Assistant Thinking',
+        content: processThinkingBlock(item.element),
+        images: []
+      });
     }
   }
   
   console.log(`[Claude Session Exporter] Collected ${messages.length} messages`);
   return messages;
+}
+
+// ツールブロックを処理
+function processToolBlock(element) {
+  const codes = element.querySelectorAll('code');
+  const result = [];
+  
+  codes.forEach((code, index) => {
+    const text = code.textContent.trim();
+    if (text) {
+      // 最初のcodeはリクエスト、次はレスポンス
+      const label = index === 0 ? '**リクエスト:**' : '**レスポンス:**';
+      result.push(`${label}\n\n\`\`\`\n${text}\n\`\`\``);
+    }
+  });
+  
+  return result.join('\n\n');
+}
+
+// 思考ブロックを処理
+function processThinkingBlock(element) {
+  // 思考ブロック内の .standard-markdown か .font-claude-response-body を取得
+  const markdown = element.querySelector('.standard-markdown');
+  if (markdown) {
+    return processAssistantMessage(markdown);
+  }
+  
+  // .standard-markdown がない場合はテキスト要素を取得
+  const textElements = element.querySelectorAll('.font-claude-response-body');
+  if (textElements.length > 0) {
+    return Array.from(textElements).map(el => el.textContent.trim()).join('\n\n');
+  }
+  
+  // フォールバック：ボタンとcodeを除外してテキスト取得
+  const clone = element.cloneNode(true);
+  clone.querySelectorAll('button, code, pre').forEach(el => el.remove());
+  
+  let text = clone.textContent.trim();
+  text = text.replace(/^思考プロセス/, '').replace(/^じっくり考え.*?\n/, '').trim();
+  // 「リクエスト」「レスポンス」などのラベルも除外
+  text = text.replace(/\u30ea\u30af\u30a8\u30b9\u30c8.*$/s, '').trim();
+  
+  return text;
 }
 
 // ユーザーメッセージを処理
