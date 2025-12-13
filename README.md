@@ -1,6 +1,7 @@
 # Claude Session Exporter 
 
 2025/12/12 エクスポート出来ないことを確認。時間あったら修正するつもり
+2025/12/13 v1.2 UI変更対応（セレクタ修正）動きました
 
 Export Claude.ai conversations as Markdown files
 
